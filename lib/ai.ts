@@ -8,9 +8,18 @@ interface RawInsight {
   confidence?: number;
 }
 
+if (!process.env.OPENROUTER_API_KEY) {
+  // Make missing key obvious in server logs
+  console.error(
+    'Missing OPENROUTER_API_KEY. Set it in your environment (.env.local) to enable AI insights.'
+  );
+}
+
+const DEFAULT_MODEL = process.env.OPENROUTER_MODEL || 'deepseek/deepseek-chat';
+
 const openai = new OpenAI({
   baseURL: 'https://openrouter.ai/api/v1',
-  apiKey: process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENROUTER_API_KEY,
   defaultHeaders: {
     'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
     'X-Title': 'ExpenseTracker AI',
@@ -68,7 +77,7 @@ export async function generateExpenseInsights(
     Return only valid JSON array, no additional text.`;
 
     const completion = await openai.chat.completions.create({
-      model: 'deepseek/deepseek-chat-v3-0324:free',
+      model: DEFAULT_MODEL,
       messages: [
         {
           role: 'system',
@@ -102,7 +111,18 @@ export async function generateExpenseInsights(
     }
 
     // Parse AI response
-    const insights = JSON.parse(cleanedResponse);
+    let insights: unknown;
+    try {
+      insights = JSON.parse(cleanedResponse);
+    } catch {
+      // Try to extract the first JSON array from the text
+      const match = cleanedResponse.match(/\[[\s\S]*\]/);
+      if (match) {
+        insights = JSON.parse(match[0]);
+      } else {
+        throw new Error('Failed to parse AI JSON response');
+      }
+    }
 
     // Add IDs and ensure proper format
     const formattedInsights = insights.map(
@@ -138,7 +158,7 @@ export async function generateExpenseInsights(
 export async function categorizeExpense(description: string): Promise<string> {
   try {
     const completion = await openai.chat.completions.create({
-      model: 'deepseek/deepseek-chat-v3-0324',
+      model: DEFAULT_MODEL,
       messages: [
         {
           role: 'system',
@@ -202,7 +222,7 @@ export async function generateAIAnswer(
     Return only the answer text, no additional formatting.`;
 
     const completion = await openai.chat.completions.create({
-      model: 'deepseek/deepseek-chat-v3-0324:free',
+      model: DEFAULT_MODEL,
       messages: [
         {
           role: 'system',

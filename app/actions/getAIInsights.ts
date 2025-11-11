@@ -67,14 +67,14 @@ export async function getAIInsights(): Promise<AIInsight[]> {
   } catch (error) {
     console.error('Error getting AI insights:', error);
 
-    // Return fallback insights
+    // Add more error info for debugging
     return [
       {
         id: 'error-1',
         type: 'warning',
         title: 'Insights Temporarily Unavailable',
         message:
-          "We're having trouble analyzing your expenses right now. Please try again in a few minutes.",
+          `We're having trouble analyzing your expenses right now. Error: ${error instanceof Error ? error.message : String(error)}. Please try again in a few minutes.`,
         action: 'Retry analysis',
         confidence: 0.5,
       },

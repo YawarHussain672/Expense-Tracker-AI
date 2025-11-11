@@ -1,8 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getAIInsights } from '@/app/actions/getAIInsights';
-import { generateInsightAnswer } from '@/app/actions/generateInsightAnswer';
 
 interface InsightData {
   id: string;
@@ -28,7 +26,11 @@ const AIInsights = () => {
   const loadInsights = async () => {
     setIsLoading(true);
     try {
-      const newInsights = await getAIInsights();
+      const res = await fetch('/api/ai/insights', { method: 'GET' });
+      if (!res.ok) {
+        throw new Error(`Failed to load insights: ${res.status}`);
+      }
+      const newInsights: InsightData[] = await res.json();
       setInsights(newInsights);
       setLastUpdated(new Date());
     } catch (error) {
@@ -74,8 +76,18 @@ const AIInsights = () => {
       // Generate question based on insight title and action
       const question = `${insight.title}: ${insight.action}`;
 
-      // Use server action to generate AI answer
-      const answer = await generateInsightAnswer(question);
+      const res = await fetch('/api/ai/answer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ question }),
+      });
+      if (!res.ok) {
+        throw new Error(`Failed to generate answer: ${res.status}`);
+      }
+      const data: { answer: string } = await res.json();
+      const answer = data.answer;
 
       setAiAnswers((prev) =>
         prev.map((a) =>
