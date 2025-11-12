@@ -129,15 +129,29 @@ export async function generateExpenseInsights(
     }
 
     // Add IDs and ensure proper format
+    const allowedTypes: AIInsight['type'][] = ['warning', 'info', 'success', 'tip'];
+
     const formattedInsights = (insights as RawInsight[]).map(
-      (insight: RawInsight, index: number) => ({
-        id: `ai-${Date.now()}-${index}`,
-        type: insight.type || 'info',
-        title: insight.title || 'AI Insight',
-        message: insight.message || 'Analysis complete',
-        action: insight.action,
-        confidence: insight.confidence || 0.8,
-      })
+      (insight: RawInsight, index: number): AIInsight => {
+        const rawType = insight.type?.toLowerCase();
+        const type: AIInsight['type'] = allowedTypes.includes(
+          rawType as AIInsight['type']
+        )
+          ? (rawType as AIInsight['type'])
+          : 'info';
+
+        return {
+          id: `ai-${Date.now()}-${index}`,
+          type,
+          title: insight.title || 'AI Insight',
+          message: insight.message || 'Analysis complete',
+          action: insight.action,
+          confidence:
+            typeof insight.confidence === 'number' && insight.confidence >= 0
+              ? insight.confidence
+              : 0.8,
+        };
+      }
     );
 
     return formattedInsights;
